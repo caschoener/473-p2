@@ -62,6 +62,53 @@ void *my_malloc(int size) {
 }
 
 void my_free(void *ptr) {
+	//given pointer to where the allocation starts
+	//must find if the previous space is a hole and if so merge
+	//and check if the next space is a hole and if so, merge
+	
+	//start address of allocated memory
+	char* alloc_start = ptr - sizeof(int);
+	
+	//get size of allocated space
+	int size = *alloc_start;
+	
+	//find end of allocated space
+	char* alloc_end = ptr + size;
+	
+	//initialize search node
+	Hole_Node* search = hole_list;
+	
+	//check if first hole is directly before the space to free
+	if (((search->location)+(search->size)) == alloc_start) {
+		//merge these holes
+		search->size += size + 1;
+		
+	//otherwise, search for hole directly before the memory to be freed
+	} else {
+		//iterate through LL and stop if location+size >= alloc_start
+		while (((search->next->location)+(search->next->size)) < alloc_start) {
+			search = search->next;
+		}
+		
+		//check if the previous hole is directly before the space to free
+		if (((search->next->location)+(search->next->size)) == alloc_start) {
+			//merge these holes
+			search->next->size += size + 1;
+		}
+	}
+
+	//search->next should be at the hole before the memory to be freed
+	//so, advance search once
+	search = search->next;
+	
+	//then, check if the end of that hole is the beginning of the next hole
+	if (((search->location)+(search->size)) == (search->next->location)) {
+		//merge these holes
+		search->size += search->next->size;
+		
+		//update linked list
+		search->next = search->next->next;
+	}
 }
 
 int num_free_bytes() {
