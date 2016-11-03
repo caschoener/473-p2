@@ -20,7 +20,7 @@
 typedef struct Hole_Node_
 {
     int size;
-    int location;
+    char* location;
     struct Hole_Node_* next;
 } Hole_Node;
 
@@ -33,7 +33,7 @@ int num_holes();
 //global vars for memory space information
 int memory_size;
 int malloc_type;
-void* memory_start;
+char* memory_start;
 
 //linked list of holes, initially one node for entire space
 Hole_Node* hole_list;
@@ -49,13 +49,44 @@ void setup( int malloc_type_, int mem_size, void* start_of_memory ) {
     hole_list = starter_node;
 }
 // searches through holes based on type, adds header at start of hole, updates holes list, returns location+1
+// need to test if increment by 4 or 1
 void *my_malloc(int size) {
     if (malloc_type = BEST_FIT){
         Hole_Node* curr = hole_list;
-        while (hole_list->next!= NULL)
+        Hole_Node* prev = NULL;
+        while (curr->size <= size+4)
         {
-            
+            prev = curr;
+            curr = curr->next;
+            if (curr == NULL) // end of list, no holes were big enough
+            {
+                return (void*)-1;
+            }
         }
+        //this hole is big enough so add header and store location to return
+        memcpy(curr->location, &size, sizeof(size));
+        char* loc_to_return = curr->location+4;
+
+        //remove or update curr
+        if (curr->size == size+4)
+        {
+            if (prev = NULL) //it's the head
+            {
+                hole_list = curr->next;
+                malloc(curr);
+            }
+            else
+            {
+                prev->next = curr->next;
+                malloc(curr);
+            }
+        }
+        else
+        {
+            curr->size -= (size+4);
+            curr->location += (size+4);
+        }
+        return (void*)loc_to_return;
     }
 
     return (void*)-1;
@@ -65,9 +96,23 @@ void my_free(void *ptr) {
 }
 
 int num_free_bytes() {
-    return 0;
+    Hole_Node* curr = hole_list;
+    int size = 0;
+    while (curr != NULL)
+    {
+        size += curr->size;
+        curr = curr->next;
+    }
+    return size;
 }
 
 int num_holes() {
-    return 0;
+    Hole_Node* curr = hole_list;
+    int num = 0;
+    while (curr != NULL)
+    {
+        curr = curr->next;
+        num++;
+    }
+    return num;
 }
