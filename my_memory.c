@@ -103,35 +103,48 @@ void my_free(void *ptr) {
     
     //get size of allocated space
     int size;
-    memcpy(alloc_start, &size, sizeof(int));
+    memcpy(&size, alloc_start, sizeof(int));
     
     //find end of allocated space
-    char* alloc_end = (char*)ptr + size + 4;
+    char* alloc_end = (char*)ptr + size;
     
     //initialize search node
     Hole_Node* search = hole_list;
     
-    //check if first hole is directly before the space to free
+    //check if first hole is contiguous with memory to be freed
     if (((search->location)+(search->size)) == alloc_start) {
-        //merge these holes
-        search->size += size + 1;
-        
+        //add memory to be freed to first hole
+        search->size += size + 4;
+    }
+    
     //otherwise, search for hole directly before the memory to be freed
-    } else {
+    else {
+
         //iterate through LL and stop if location+size >= alloc_start
         while ((search->next != NULL) && (((search->next->location)+(search->next->size)) < alloc_start)) {
             search = search->next;
         }
-        //check if the previous hole is directly before the space to free
+
+        //check if the previous hole is contiguous with the space to free
         if ((search->next != NULL) && (((search->next->location)+(search->next->size)) == alloc_start)) {
             //merge these holes
-            search->next->size += size + 1;
-        }
+            search->next->size += size + 4;
+		} 
+		//otherwise, make a new hole
+        else {
+	    	Hole_Node* new_hole = malloc(sizeof(Hole_Node));
+			new_hole->location = alloc_start;
+			new_hole->size = size + 4;
+			new_hole->next = search->next;
+			search->next = new_hole;
+		}
     }
 
     //search->next should be at the hole before the memory to be freed
     //so, advance search once
-    search = search->next;
+    if (search->next != NULL) {
+		search = search->next;
+    }
     
     //then, check if the end of that hole is the beginning of the next hole
     if ((search->next != NULL) && (((search->location)+(search->size)) == (search->next->location))) {
