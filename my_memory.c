@@ -20,11 +20,21 @@ typedef struct Hole_Node_
     struct Hole_Node_* next;
 } Hole_Node;
 
+typedef struct Buddy_Node_ {
+	int isSplit;
+	int isAllocated;
+	int size;
+	void* location;
+	struct Buddy_Node_* left;
+	struct Buddy_Node_* right;
+} Buddy_Node;
+
 void setup(int, int, void*);
 void *my_malloc(int);
 void my_free(void*);
 int num_free_bytes();
 int num_holes();
+void *buddy_allocate(int, Buddy_Node*);
 
 //global vars for memory space information
 int memory_size;
@@ -33,6 +43,76 @@ char* memory_start;
 
 //linked list of holes, initially one node for entire space
 Hole_Node* hole_list;
+
+//root of buddy system tree
+Buddy_Node* buddy_root;
+
+void *buddy_allocate(int size, Buddy_Node* node) {
+	int return_location = -1;
+	
+	//check if this node is allocated
+	if (node->isAllocated == 1) {
+		return -1;
+	}
+	
+	//else, node is not allocated, check if this node is the correct size
+	else if (node->size == size) {
+		//check if node is split
+		if (node->isSplit == 0) {
+			//allocate here
+			node->isAllocated = 1;
+			return node->location;
+		}
+		
+		//else, node is split
+		else {
+			return -1;
+		}
+	}
+	
+	//else, node is too big, check if already split
+	else if (node->isSplit == 1) {
+		//check left node
+		return_location = buddy_allocate(size, node->left);
+		if (return_location == -1) {
+			//check right node
+			return_location = buddy_allocate(size, node->right);
+		} //at this point, either left location, right location, or -1 is in return_location
+		return return_location;
+	}
+	
+	//else, split this node
+	else {
+		split_node(node);
+		
+		//try this node again
+		buddy_allocate(size, node);
+	}
+}
+
+void split_node(Buddy_Node* node) {
+	node->isSplit = 1;
+	int childSize = (node->size)/2;
+	
+	Buddy_Node* new_left = malloc(sizeof(Buddy_Node));
+	new_left->isSplit = 0;
+	new_left->isAllocated = 0;
+	new_left->size = childSize;
+	new_left->location = node->location;
+	new_left->left = NULL;
+	new_left->right = NULL;
+	
+	Buddy_Node* new_right = malloc(sizeof(Buddy_Node));
+	new_right->isSplit = 0;
+	new_right->isAllocated = 0;
+	new_right->size = childSize;
+	new_right->location = node->location + childSize;
+	new_right->left = NULL;
+	new_right->right = NULL;
+	
+	node->left = new_left;
+	node->right = new_right;	
+}
 
 void setup( int malloc_type_, int mem_size, void* start_of_memory ) {
     malloc_type = malloc_type_;
@@ -43,6 +123,15 @@ void setup( int malloc_type_, int mem_size, void* start_of_memory ) {
     starter_node->size = memory_size;
     starter_node->location = memory_start;
     hole_list = starter_node;
+	
+	Buddy_Node* root_init = malloc(sizeof(Buddy_Node));
+	root_init->isSplit = 0;
+	root_init->isAllocated = 0;
+	root_init->size = memory_size;
+	root_init->location = memory_start;
+	root_init->left = NULL;
+	root_init->right = NULL;
+	buddy_root = root_init;
 }
 // searches through holes based on type, adds header at start of hole, updates holes list, returns location+1
 // need to test if increment by 4 or 1
@@ -143,6 +232,21 @@ void *my_malloc(int size) {
     }
     return (void*)loc_to_return;
 
+	
+	if (malloc_type = BUDDY_SYSTEM) {
+		int size_of_block = 2;
+		
+		//get minimum buddy block size
+		while (size_of_block < size) {
+			size_of_block *= 2;
+		}
+		
+		//get return location
+		void *loc_to_return;
+		loc_to_return = buddy_allocate(size_of_block, buddy_root);
+		
+		return loc_to_return;
+	}
     return (void*)-1;
 }
 
