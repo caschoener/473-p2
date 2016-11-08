@@ -35,6 +35,7 @@ void my_free(void*);
 int num_free_bytes();
 int num_holes();
 void *buddy_allocate(int, Buddy_Node*);
+void split_node(Buddy_Node*);
 
 //global vars for memory space information
 int memory_size;
@@ -48,11 +49,11 @@ Hole_Node* hole_list;
 Buddy_Node* buddy_root;
 
 void *buddy_allocate(int size, Buddy_Node* node) {
-	int return_location = -1;
+	void* return_location = (void*)-1;
 	
 	//check if this node is allocated
 	if (node->isAllocated == 1) {
-		return -1;
+		return (void*)-1;
 	}
 	
 	//else, node is not allocated, check if this node is the correct size
@@ -61,12 +62,12 @@ void *buddy_allocate(int size, Buddy_Node* node) {
 		if (node->isSplit == 0) {
 			//allocate here
 			node->isAllocated = 1;
-			return node->location;
+			return (void*)node->location;
 		}
 		
 		//else, node is split
 		else {
-			return -1;
+			return (void*)-1;
 		}
 	}
 	
@@ -207,6 +208,20 @@ void *my_malloc(int size) {
         chosen_prev = worst_prev;
     }
 
+	if (malloc_type = BUDDY_SYSTEM) {
+		int size_of_block = 2;
+		
+		//get minimum buddy block size
+		while (size_of_block < size) {
+			size_of_block *= 2;
+		}
+		
+		//get return location
+		void *loc_to_return;
+		loc_to_return = buddy_allocate(size_of_block, buddy_root);
+		
+		return loc_to_return;
+	}
     //if we made it here then chosen_hole is address to be used
     memcpy(chosen_hole->location, &size, sizeof(size));
     char* loc_to_return = chosen_hole->location+4;
@@ -232,21 +247,6 @@ void *my_malloc(int size) {
     }
     return (void*)loc_to_return;
 
-	
-	if (malloc_type = BUDDY_SYSTEM) {
-		int size_of_block = 2;
-		
-		//get minimum buddy block size
-		while (size_of_block < size) {
-			size_of_block *= 2;
-		}
-		
-		//get return location
-		void *loc_to_return;
-		loc_to_return = buddy_allocate(size_of_block, buddy_root);
-		
-		return loc_to_return;
-	}
     return (void*)-1;
 }
 
