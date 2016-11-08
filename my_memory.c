@@ -110,7 +110,53 @@ void my_free(void *ptr) {
     
     //initialize search node
     Hole_Node* search = hole_list;
-    
+
+	//check if first hole is contiguous with mem to to be freed
+	if (search->location+search->size == alloc_start) {
+		search->size += size + 4;
+	}
+
+	//else, find hole directly before memory to be freed
+	else {
+		while (search->next != NULL && search->next->location + search->next->size < alloc_start) {
+			search = search->next;
+		}
+
+		//check if hole directly before memory to be freed is contiguous
+		if (search->location + search->size == alloc_start) {
+			search->size += size + 4;
+		}
+
+		//else, make a new hole
+		else {
+			Hole_Node* new_hole = malloc(sizeof(Hole_Node));
+			new_hole->location = alloc_start;
+			new_hole->size = size + 4;
+			
+			//check if hole_list points after memory to be freed
+			if (hole_list->location > alloc_start) {
+				//insert at front of hole list
+				new_hole->next = hole_list;
+				hole_list = new_hole;
+			}
+			
+			//else, add into proper spot
+			else {
+				new_hole->next = search->next;
+				search->next = new_hole;
+			}
+		}
+	}
+	
+	//check if hole is contiguous with next hole
+	if (search->next != NULL && (search->location + search->size == search->next->location)) {
+		search->size += search->next->size;
+		search->next = search->next->next;
+	}
+	
+	
+			
+   /* 
     //check if first hole is contiguous with memory to be freed
     if (((search->location)+(search->size)) == alloc_start) {
         //add memory to be freed to first hole
@@ -153,7 +199,7 @@ void my_free(void *ptr) {
         
         //update linked list
         search->next = search->next->next;
-    }
+    }*/
 }
 
 int num_free_bytes() {
