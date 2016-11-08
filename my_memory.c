@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <math.h>
 #include "memalloc.h"
 
 typedef struct Hole_Node_
@@ -36,6 +37,11 @@ int num_free_bytes();
 int num_holes();
 void *buddy_allocate(int, Buddy_Node*);
 void split_node(Buddy_Node*);
+int DFS_size(Buddy_Node*);
+int DFS_num(Buddy_Node*);
+
+
+
 
 //global vars for memory space information
 int memory_size;
@@ -257,8 +263,13 @@ void *my_malloc(int size) {
 
     return (void*)-1;
 }
+void DFS_buddy_free(void *ptr) {
+    if 
+}
 
-void my_free(void *ptr) {   
+void my_free(void *ptr) {
+    if (malloc_type = BUDDY_SYSTEM)
+        DFS_buddy_free(ptr);
     //given pointer to where the allocation starts
     //must find if the previous space is a hole and if so merge
     //and check if the next space is a hole and if so, merge
@@ -319,8 +330,20 @@ void my_free(void *ptr) {
 		search->next = search->next->next;
 	}
 }
-
-int num_free_bytes() {
+int DFS_size(Buddy_Node* curr){ 
+    if (!curr) 
+        return 0; 
+    if (curr->isAllocated)
+        return 0;
+    if (curr->isSplit)
+        return DFS_size(curr->left) + DFS_size(curr->right); 
+    return curr->size;
+} 
+int num_free_bytes() { 
+    if (malloc_type == BUDDY_SYSTEM)
+    { 
+        return DFS_size(buddy_root); 
+    } 
     Hole_Node* curr = hole_list;
     int size = 0;
     while (curr != NULL)
@@ -330,8 +353,20 @@ int num_free_bytes() {
     }
     return size;
 }
-
+int DFS_num(Buddy_Node* curr){ 
+    if (!curr) 
+        return 0; 
+    if (curr->isAllocated)
+        return 0;
+    if (curr->isSplit)
+        return DFS_num(curr->left) + DFS_num(curr->right);
+    return 1;
+} 
 int num_holes() {
+    if (malloc_type == BUDDY_SYSTEM)
+    {
+        return DFS_num(buddy_root);
+    }
     Hole_Node* curr = hole_list;
     int num = 0;
     while (curr != NULL)
@@ -341,3 +376,5 @@ int num_holes() {
     }
     return num;
 }
+
+
