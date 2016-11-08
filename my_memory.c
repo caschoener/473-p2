@@ -22,7 +22,6 @@ typedef struct Hole_Node_
 } Hole_Node;
 
 typedef struct Buddy_Node_ {
-	int isSplit;
 	int isAllocated;
 	int size;
 	void* location;
@@ -65,7 +64,7 @@ void *buddy_allocate(int size, Buddy_Node* node) {
 	//else, node is not allocated, check if this node is the correct size
 	else if (node->size == size) {
 		//check if node is split
-		if (node->isSplit == 0) {
+		if (node->left==NULL) {
 			//allocate here
 			node->isAllocated = 1;
 			return (void*)node->location;
@@ -78,7 +77,7 @@ void *buddy_allocate(int size, Buddy_Node* node) {
 	}
 	
 	//else, node is too big, check if already split
-	else if (node->isSplit == 1) {
+	else if (node->left!=NULL) {
 		//check left node
 		return_location = buddy_allocate(size, node->left);
 		if (return_location == (void*)-1) {
@@ -99,24 +98,17 @@ void *buddy_allocate(int size, Buddy_Node* node) {
 }
 
 void split_node(Buddy_Node* node) {
-	node->isSplit = 1;
 	int childSize = (node->size)/2;
 	
 	Buddy_Node* new_left = malloc(sizeof(Buddy_Node));
-	new_left->isSplit = 0;
 	new_left->isAllocated = 0;
 	new_left->size = childSize;
 	new_left->location = node->location;
-	new_left->left = NULL;
-	new_left->right = NULL;
 	
 	Buddy_Node* new_right = malloc(sizeof(Buddy_Node));
-	new_right->isSplit = 0;
 	new_right->isAllocated = 0;
 	new_right->size = childSize;
 	new_right->location = node->location + childSize;
-	new_right->left = NULL;
-	new_right->right = NULL;
 	
 	node->left = new_left;
 	node->right = new_right;	
@@ -133,7 +125,6 @@ void setup( int malloc_type_, int mem_size, void* start_of_memory ) {
     hole_list = starter_node;
 	
 	Buddy_Node* root_init = malloc(sizeof(Buddy_Node));
-	root_init->isSplit = 0;
 	root_init->isAllocated = 0;
 	root_init->size = memory_size;
 	root_init->location = memory_start;
@@ -266,27 +257,21 @@ void *my_malloc(int size) {
 int DFS_buddy_free(void *ptr, Buddy_Node* curr) {
     if (!curr)
         return 0;
-    if (curr->location + 4 == ptr)
+    if (curr->left==NULL && (curr->location + 4 == ptr))
     {
-        printf("l %d\n", *((int*)curr->location));
-            printf("%d\n", num_free_bytes());
-
-        curr->isAllocated = 0;  
-        curr->isSplit = 0;  
-        printf("%d\n", num_free_bytes());
-
+        curr->isAllocated = 0;
         return 1;
     }
     if (DFS_buddy_free(ptr, curr->left) || DFS_buddy_free(ptr, curr->right))
     {
-        if (curr->left->isSplit == 0 && curr->right->isSplit == 0 && curr->left->isAllocated == 0 && curr->right->isAllocated == 0)
+        if (curr->left->left==NULL && curr->right->left==NULL && curr->left->isAllocated == 0 && curr->right->isAllocated == 0)
         {
-            printf("we in there\n");
-
             free(curr->left);
             free(curr->right);
-            curr->isSplit = 0;
+            curr->left = NULL;
+            curr->right = NULL;
         }
+
         return 1;
     }
     return 0;
@@ -294,8 +279,7 @@ int DFS_buddy_free(void *ptr, Buddy_Node* curr) {
 
 void my_free(void *ptr) {
     if (malloc_type == BUDDY_SYSTEM)
-        if (!DFS_buddy_free(ptr, buddy_root))
-            printf("UHOOOOOOH\n");
+        DFS_buddy_free(ptr, buddy_root);
 
     //given pointer to where the allocation starts
     //must find if the previous space is a hole and if so merge
@@ -362,7 +346,7 @@ int DFS_size(Buddy_Node* curr){
         return 0; 
     if (curr->isAllocated)
         return 0;
-    if (curr->isSplit)
+    if (curr->left!=NULL)
         return DFS_size(curr->left) + DFS_size(curr->right); 
     return curr->size;
 } 
@@ -385,9 +369,9 @@ int DFS_num(Buddy_Node* curr){
         return 0; 
     if (curr->isAllocated)
         return 0;
-    if (curr->isSplit)
-        return DFS_num(curr->left) + DFS_num(curr->right);
-    return 1;
+    if (curr->left==NULL)
+        return 1;
+    return DFS_num(curr->left) + DFS_num(curr->right);
 } 
 int num_holes() {
     if (malloc_type == BUDDY_SYSTEM)
