@@ -10,6 +10,7 @@
 // Include files
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include "memalloc.h"
 
 typedef struct Hole_Node_
@@ -46,10 +47,14 @@ void setup( int malloc_type_, int mem_size, void* start_of_memory ) {
 // searches through holes based on type, adds header at start of hole, updates holes list, returns location+1
 // need to test if increment by 4 or 1
 void *my_malloc(int size) {
+    int request = size+4;
+    Hole_Node* chosen_hole = NULL;
+    Hole_Node* chosen_prev = NULL;
+
     if (malloc_type == FIRST_FIT){
         Hole_Node* curr = hole_list;
         Hole_Node* prev = NULL;
-        while (curr->size <= size+4)
+        while (curr->size < request)
         {
             prev = curr;
             curr = curr->next;
@@ -58,36 +63,85 @@ void *my_malloc(int size) {
                 return (void*)-1;
             }
         }
-        //this hole is big enough so add header and store location to return
-        memcpy(curr->location, &size, sizeof(size));
-        char* loc_to_return = curr->location+4;
-
-        //remove or update curr
-        if (curr->size == size+4)
-        {
-            if (prev = NULL) //it's the head
-            {
-                hole_list = curr->next;
-                malloc(curr);
-            }
-            else
-            {
-                prev->next = curr->next;
-                malloc(curr);
-            }
-        }
-        else
-        {
-            curr->size -= (size+4);
-            curr->location += (size+4);
-        }
-        return (void*)loc_to_return;
+        chosen_hole = curr;
+        chosen_prev = prev;
     }
     if (malloc_type == BEST_FIT)
     {
-
+        Hole_Node* curr = hole_list;
+        Hole_Node* prev = NULL;
+        Hole_Node* best = NULL;
+        Hole_Node* best_prev = NULL;
+        int best_difference = INT_MAX;
+        while (curr != NULL)
+        {
+            if ((curr->size >= request) && (curr->size - request < best_difference))
+            {
+                best = curr;
+                best_prev = prev;
+                best_difference = curr->size - request;
+            }
+            prev = curr;
+            curr = curr->next;
+        }
+        if (best == NULL)
+        {
+            return (void*)-1;
+        }
+        chosen_hole = best;
+        chosen_prev = best_prev;
     }
 
+    if (malloc_type == WORST_FIT)
+    {
+        Hole_Node* curr = hole_list;
+        Hole_Node* prev = NULL;
+        Hole_Node* worst = NULL;
+        Hole_Node* worst_prev = NULL;
+        int worst_difference = -1;
+        while (curr != NULL)
+        {
+            if ((curr->size >= request) && (curr->size - request > worst_difference))
+            {
+                worst = curr;
+                worst_prev = prev;
+                worst_difference = curr->size - request;
+            }
+            prev = curr;
+            curr = curr->next;
+        }
+        if (worst == NULL)
+        {
+            return (void*)-1;
+        }
+        chosen_hole = worst;
+        chosen_prev = worst_prev;
+    }
+
+    //if we made it here then chosen_hole is address to be used
+    memcpy(chosen_hole->location, &size, sizeof(size));
+    char* loc_to_return = chosen_hole->location+4;
+
+    //remove or update chosen_hole
+    if (chosen_hole->size == request)
+    {
+        if (chosen_prev == NULL) //it's the head
+        {
+            hole_list = chosen_hole->next;
+            malloc(chosen_hole);
+        }
+        else
+        {
+            chosen_prev->next = chosen_hole->next;
+            malloc(chosen_hole);
+        }
+    }
+    else
+    {
+        chosen_hole->size -= (request);
+        chosen_hole->location += (request);
+    }
+    return (void*)loc_to_return;
 
     return (void*)-1;
 }
@@ -152,53 +206,6 @@ void my_free(void *ptr) {
 		search->size += search->next->size;
 		search->next = search->next->next;
 	}
-	
-	
-			
-   /* 
-    //check if first hole is contiguous with memory to be freed
-    if (((search->location)+(search->size)) == alloc_start) {
-        //add memory to be freed to first hole
-        search->size += size + 4;
-    }
-    
-    //otherwise, search for hole directly before the memory to be freed
-    else {
-
-        //iterate through LL and stop if location+size >= alloc_start
-        while ((search->next != NULL) && (((search->next->location)+(search->next->size)) < alloc_start)) {
-            search = search->next;
-        }
-
-        //check if the previous hole is contiguous with the space to free
-        if ((search->next != NULL) && (((search->next->location)+(search->next->size)) == alloc_start)) {
-            //merge these holes
-            search->next->size += size + 4;
-		} 
-		//otherwise, make a new hole
-        else {
-	    	Hole_Node* new_hole = malloc(sizeof(Hole_Node));
-			new_hole->location = alloc_start;
-			new_hole->size = size + 4;
-			new_hole->next = search->next;
-			search->next = new_hole;
-		}
-    }
-
-    //search->next should be at the hole before the memory to be freed
-    //so, advance search once
-    if (search->next != NULL) {
-		search = search->next;
-    }
-    
-    //then, check if the end of that hole is the beginning of the next hole
-    if ((search->next != NULL) && (((search->location)+(search->size)) == (search->next->location))) {
-        //merge these holes
-        search->size += search->next->size;
-        
-        //update linked list
-        search->next = search->next->next;
-    }*/
 }
 
 int num_free_bytes() {
