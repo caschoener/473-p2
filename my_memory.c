@@ -12,11 +12,6 @@
 #include <stdlib.h>
 #include "memalloc.h"
 
-#define FIRST_FIT       0
-#define BEST_FIT        1
-#define WORST_FIT       2
-#define BUDDY_SYSTEM    3
-
 typedef struct Hole_Node_
 {
     int size;
@@ -51,7 +46,7 @@ void setup( int malloc_type_, int mem_size, void* start_of_memory ) {
 // searches through holes based on type, adds header at start of hole, updates holes list, returns location+1
 // need to test if increment by 4 or 1
 void *my_malloc(int size) {
-    if (malloc_type = BEST_FIT){
+    if (malloc_type == FIRST_FIT){
         Hole_Node* curr = hole_list;
         Hole_Node* prev = NULL;
         while (curr->size <= size+4)
@@ -87,6 +82,10 @@ void *my_malloc(int size) {
             curr->location += (size+4);
         }
         return (void*)loc_to_return;
+    }
+    if (malloc_type == BEST_FIT)
+    {
+
     }
 
 
