@@ -263,13 +263,30 @@ void *my_malloc(int size) {
 
     return (void*)-1;
 }
-void DFS_buddy_free(void *ptr) {
-    if 
+bool DFS_buddy_free(void *ptr, Buddy_Node* curr) {
+    if (!curr)
+        return False;
+    if (curr->location + 4 == *ptr)
+    {
+        curr->isAllocated = False;
+        void* location = NULL;
+        return True;
+    }
+    if (DFS_buddy_free(ptr, curr->left) || DFS_buddy_free(ptr, curr->right))
+    {
+        if (curr->left->isSplit == False && curr->right->isSplit == False && curr->left->isAllocated == False && curr->right->isAllocated == False)
+        {
+            free(curr->left);
+            free(curr->right);
+            curr->isSplit = False;
+        }
+        return True;
+    }
 }
 
 void my_free(void *ptr) {
     if (malloc_type = BUDDY_SYSTEM)
-        DFS_buddy_free(ptr);
+        DFS_buddy_free(ptr, buddy_root);
     //given pointer to where the allocation starts
     //must find if the previous space is a hole and if so merge
     //and check if the next space is a hole and if so, merge
