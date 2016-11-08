@@ -263,24 +263,23 @@ void *my_malloc(int size) {
 
     return (void*)-1;
 }
-bool DFS_buddy_free(void *ptr, Buddy_Node* curr) {
+int DFS_buddy_free(void *ptr, Buddy_Node* curr) {
     if (!curr)
-        return False;
-    if (curr->location + 4 == *ptr)
+        return 0;
+    if (curr->location + 4 == ptr)
     {
-        curr->isAllocated = False;
-        void* location = NULL;
-        return True;
+        curr->isAllocated = 0;
+        return 1;
     }
     if (DFS_buddy_free(ptr, curr->left) || DFS_buddy_free(ptr, curr->right))
     {
-        if (curr->left->isSplit == False && curr->right->isSplit == False && curr->left->isAllocated == False && curr->right->isAllocated == False)
+        if (curr->left->isSplit == 0 && curr->right->isSplit == 0 && curr->left->isAllocated == 0 && curr->right->isAllocated == 0)
         {
             free(curr->left);
             free(curr->right);
-            curr->isSplit = False;
+            curr->isSplit = 0;
         }
-        return True;
+        return 1;
     }
 }
 
