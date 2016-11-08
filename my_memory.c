@@ -93,8 +93,9 @@ void *buddy_allocate(int size, Buddy_Node* node) {
 		split_node(node);
 		
 		//try this node again
-		buddy_allocate(size, node);
+		return buddy_allocate(size, node);
 	}
+    return (void*)-1;
 }
 
 void split_node(Buddy_Node* node) {
@@ -146,7 +147,6 @@ void *my_malloc(int size) {
     int request = size+4;
     Hole_Node* chosen_hole = NULL;
     Hole_Node* chosen_prev = NULL;
-
     if (malloc_type == FIRST_FIT){
         Hole_Node* curr = hole_list;
         Hole_Node* prev = NULL;
@@ -227,7 +227,7 @@ void *my_malloc(int size) {
 		loc_to_return = buddy_allocate(size_of_block, buddy_root);
 		
 		if (loc_to_return != (void*)-1) {
-			memcpy(loc_to_return, &size, sizeof(size));
+			memcpy(loc_to_return, &size_of_block, sizeof(size_of_block));
 			loc_to_return += sizeof(int);
 			return loc_to_return;
 		}
@@ -236,7 +236,7 @@ void *my_malloc(int size) {
 		}
 		
 	}
-    //if we made it here then chosen_hole is address to be used
+    //this code is identical for first, worst, best fit
     memcpy(chosen_hole->location, &size, sizeof(size));
     char* loc_to_return = chosen_hole->location+4;
 
@@ -268,24 +268,35 @@ int DFS_buddy_free(void *ptr, Buddy_Node* curr) {
         return 0;
     if (curr->location + 4 == ptr)
     {
-        curr->isAllocated = 0;
+        printf("l %d\n", *((int*)curr->location));
+            printf("%d\n", num_free_bytes());
+
+        curr->isAllocated = 0;  
+        curr->isSplit = 0;  
+        printf("%d\n", num_free_bytes());
+
         return 1;
     }
     if (DFS_buddy_free(ptr, curr->left) || DFS_buddy_free(ptr, curr->right))
     {
         if (curr->left->isSplit == 0 && curr->right->isSplit == 0 && curr->left->isAllocated == 0 && curr->right->isAllocated == 0)
         {
+            printf("we in there\n");
+
             free(curr->left);
             free(curr->right);
             curr->isSplit = 0;
         }
         return 1;
     }
+    return 0;
 }
 
 void my_free(void *ptr) {
-    if (malloc_type = BUDDY_SYSTEM)
-        DFS_buddy_free(ptr, buddy_root);
+    if (malloc_type == BUDDY_SYSTEM)
+        if (!DFS_buddy_free(ptr, buddy_root))
+            printf("UHOOOOOOH\n");
+
     //given pointer to where the allocation starts
     //must find if the previous space is a hole and if so merge
     //and check if the next space is a hole and if so, merge
