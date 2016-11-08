@@ -75,7 +75,7 @@ void *buddy_allocate(int size, Buddy_Node* node) {
 	else if (node->isSplit == 1) {
 		//check left node
 		return_location = buddy_allocate(size, node->left);
-		if (return_location == -1) {
+		if (return_location == (void*)-1) {
 			//check right node
 			return_location = buddy_allocate(size, node->right);
 		} //at this point, either left location, right location, or -1 is in return_location
@@ -208,11 +208,11 @@ void *my_malloc(int size) {
         chosen_prev = worst_prev;
     }
 
-	if (malloc_type = BUDDY_SYSTEM) {
+	if (malloc_type == BUDDY_SYSTEM) {
 		int size_of_block = 2;
 		
 		//get minimum buddy block size
-		while (size_of_block < size) {
+		while (size_of_block < request) {
 			size_of_block *= 2;
 		}
 		
@@ -220,7 +220,15 @@ void *my_malloc(int size) {
 		void *loc_to_return;
 		loc_to_return = buddy_allocate(size_of_block, buddy_root);
 		
-		return loc_to_return;
+		if (loc_to_return != (void*)-1) {
+			memcpy(loc_to_return, &size, sizeof(size));
+			loc_to_return += sizeof(int);
+			return loc_to_return;
+		}
+		else {
+			return (void*)-1;
+		}
+		
 	}
     //if we made it here then chosen_hole is address to be used
     memcpy(chosen_hole->location, &size, sizeof(size));
